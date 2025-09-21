@@ -89,6 +89,45 @@ function loadGame() {
     }
 }
 
+// Fetch and display leaderboard
+async function getLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+        renderLeaderboard(data);
+    } catch (error) {
+        console.error('Failed to fetch leaderboard:', error);
+        leaderboardList.innerHTML = '<li>Leaderboard unavailable.</li>';
+    }
+}
+
+// Post user's score to the serverless function
+async function postScore() {
+    if (!username) return;
+    try {
+        await fetch('/api/leaderboard', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, score: Math.floor(score), prestigeLevel: prestigeLevel })
+        });
+        getLeaderboard(); // Refresh leaderboard after posting
+    } catch (error) {
+        console.error('Failed to post score:', error);
+    }
+}
+
+// Render leaderboard to the UI
+function renderLeaderboard(data) {
+    leaderboardList.innerHTML = '';
+    data.sort((a, b) => b.score - a.score).slice(0, 10).forEach((entry, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>#${index + 1} ${entry.username}</span><span>Score: ${Math.floor(entry.score)} (P: ${entry.prestigeLevel})</span>`;
+        leaderboardList.appendChild(li);
+    });
+}
+
 // Update the display with current stats
 function updateDisplay() {
     scoreElement.textContent = Math.floor(score);
@@ -158,45 +197,6 @@ function renderAchievements() {
             <span>${achievement.achieved ? '✓' : '✗'}</span>
         `;
         achievementsList.appendChild(li);
-    });
-}
-
-// Fetch and display leaderboard from a local JSON file
-async function getLeaderboard() {
-    try {
-        const response = await fetch('leaderboard.json');
-        const data = await response.json();
-        renderLeaderboard(data);
-    } catch (error) {
-        console.error('Failed to fetch leaderboard:', error);
-    }
-}
-
-// Update the leaderboard data and render it
-function updateLeaderboard() {
-    getLeaderboard().then(data => {
-        const existingUserIndex = data.findIndex(user => user.username === username);
-        if (existingUserIndex !== -1) {
-            if (score > data[existingUserIndex].score) {
-                data[existingUserIndex].score = score;
-                data[existingUserIndex].prestigeLevel = prestigeLevel;
-            }
-        } else {
-            data.push({ username, score, prestigeLevel });
-        }
-        // This part would ideally save to the file, but client-side JS cannot do that
-        // For a client-only solution, the leaderboard is updated in memory
-        renderLeaderboard(data);
-    });
-}
-
-// Render leaderboard to the UI
-function renderLeaderboard(data) {
-    leaderboardList.innerHTML = '';
-    data.sort((a, b) => b.score - a.score).slice(0, 10).forEach((entry, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span>#${index + 1} ${entry.username}</span><span>Score: ${Math.floor(entry.score)} (P: ${entry.prestigeLevel})</span>`;
-        leaderboardList.appendChild(li);
     });
 }
 
@@ -290,7 +290,7 @@ prestigeButton.addEventListener('click', () => {
         generateItems();
         updateDisplay();
         saveGame();
-        updateLeaderboard();
+        postScore();
         alert(`You have prestiged to level ${prestigeLevel}!`);
     } else {
         alert('You need at least 1000 score to prestige!');
@@ -332,4 +332,3 @@ loadGame();
 generateItems();
 renderAchievements();
 updateDisplay();
-getLeaderboard();
