@@ -1,335 +1,253 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+// Game state variables
+let score = 0;
+let clickValue = 1;
+let cps = 0;
+let prestigeLevel = 0;
+let prestigeMultiplier = 1;
+let autoClickers = 0;
+let doubleClicks = 0;
+let critChance = 0.05;
+let lastDailyRewardTime = 0;
 
-:root {
-    --bg-color: #0b0c10;
-    --container-bg: #1f2833;
-    --text-color: #66fcf1;
-    --primary-color: #45a29e;
-    --secondary-color: #c5c6c7;
-    --btn-bg: #1f2833;
-    --btn-hover: #0b0c10;
-    --upgrade-bg: #1a1e26;
-    --upgrade-hover: #232931;
-    --shadow: 0 0 20px rgba(70, 200, 255, 0.1);
-    --border-radius: 10px;
-    --border-color: #45a29e;
-}
+// DOM element references
+const scoreElement = document.getElementById('score');
+const cpsElement = document.getElementById('cps');
+const prestigeLevelElement = document.getElementById('prestige-level');
+const clickButton = document.getElementById('clickButton');
+const prestigeButton = document.getElementById('prestige-button');
+const dailyRewardButton = document.getElementById('daily-reward-button');
+const upgradesList = document.getElementById('upgrades-list');
+const storeList = document.getElementById('store-list');
+const achievementsList = document.getElementById('achievements-list');
+const themeToggle = document.getElementById('theme-toggle');
 
-body {
-    font-family: 'Orbitron', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    transition: background-color 0.5s ease;
-    margin: 0;
-    padding: 20px;
-    box-sizing: border-box;
-    overflow: hidden;
-}
+// Game data
+const upgrades = [
+    { id: 'auto-clicker', name: 'Auto-Clicker', cost: 10, initialCost: 10, effect: 'Adds 1 CPS' },
+    { id: 'double-clicks', name: 'Double Clicks', cost: 50, initialCost: 50, effect: 'Doubles click value' },
+    { id: 'crit-booster', name: 'Critical Click Booster', cost: 200, initialCost: 200, effect: 'Increases crit chance by 2%' }
+];
 
-/* Particle effect */
-#particles-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    background: radial-gradient(circle at 10% 20%, #0c1b26, transparent 50%),
-                radial-gradient(circle at 90% 80%, #1e455c, transparent 50%);
-    animation: background-pan 60s linear infinite;
-}
+const storeItems = [
+    { id: 'score-boost', name: 'Score Multiplier', cost: 500, effect: 'Multiplies current score by 1.5' },
+    { id: 'cps-boost', name: 'CPS Multiplier', cost: 1000, effect: 'Multiplies current CPS by 2' },
+];
 
-@keyframes background-pan {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 100% 100%; }
-}
+const achievements = [
+    { id: 'first-click', name: 'First Click!', description: 'Click the button for the first time.', achieved: false },
+    { id: 'hundred-score', name: 'Centurion', description: 'Reach 100 score.', achieved: false },
+    { id: 'first-upgrade', name: 'Making Progress', description: 'Buy your first upgrade.', achieved: false },
+    { id: 'prestige-one', name: 'The Cycle Begins', description: 'Prestige for the first time.', achieved: false },
+];
 
-.game-container {
-    width: 100%;
-    max-width: 650px;
-    background: var(--container-bg);
-    padding: 30px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    text-align: center;
-    border: 2px solid var(--border-color);
-    animation: pulse-border 4s infinite ease-in-out;
-    z-index: 1;
+// --- Core Game Functions ---
+
+// Update the display with current stats
+function updateDisplay() {
+    scoreElement.textContent = Math.floor(score);
+    cpsElement.textContent = cps * prestigeMultiplier;
+    prestigeLevelElement.textContent = prestigeLevel;
 }
 
-@keyframes pulse-border {
-    0% { border-color: #45a29e; box-shadow: 0 0 10px #45a29e; }
-    50% { border-color: #66fcf1; box-shadow: 0 0 20px #66fcf1; }
-    100% { border-color: #45a29e; box-shadow: 0 0 10px #45a29e; }
+// Generate upgrade and store items dynamically
+function generateItems() {
+    upgradesList.innerHTML = '';
+    upgrades.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'upgrade-item';
+        div.innerHTML = `
+            <div class="item-info">
+                <h3>${item.name}</h3>
+                <p>${item.effect}</p>
+            </div>
+            <div class="item-cost">${item.cost}</div>
+            <button class="buy-btn" data-id="${item.id}">Buy</button>
+        `;
+        upgradesList.appendChild(div);
+    });
+
+    storeList.innerHTML = '';
+    storeItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'store-item';
+        div.innerHTML = `
+            <div class="item-info">
+                <h3>${item.name}</h3>
+                <p>${item.effect}</p>
+            </div>
+            <div class="item-cost">${item.cost}</div>
+            <button class="buy-powerup-btn" data-id="${item.id}">Buy</button>
+        `;
+        storeList.appendChild(div);
+    });
 }
 
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--primary-color);
-    padding-bottom: 15px;
+// Check for achievements
+function checkAchievements() {
+    achievements.forEach(achievement => {
+        if (!achievement.achieved) {
+            if (achievement.id === 'first-click' && score > 0) {
+                achievement.achieved = true;
+            } else if (achievement.id === 'hundred-score' && score >= 100) {
+                achievement.achieved = true;
+            } else if (achievement.id === 'first-upgrade' && (autoClickers > 0 || doubleClicks > 0)) {
+                achievement.achieved = true;
+            } else if (achievement.id === 'prestige-one' && prestigeLevel >= 1) {
+                achievement.achieved = true;
+            }
+        }
+    });
+    renderAchievements();
 }
 
-h1 {
-    color: var(--text-color);
-    font-size: 2.5em;
-    text-shadow: 0 0 5px var(--primary-color);
-    margin: 0;
+// Render achievements to the UI
+function renderAchievements() {
+    achievementsList.innerHTML = '';
+    achievements.forEach(achievement => {
+        const li = document.createElement('li');
+        li.className = achievement.achieved ? 'achieved' : 'not-achieved';
+        li.innerHTML = `
+            <span>${achievement.name}</span>
+            <span>${achievement.achieved ? '✓' : '✗'}</span>
+        `;
+        achievementsList.appendChild(li);
+    });
 }
 
-.stats-container {
-    display: flex;
-    justify-content: space-around;
-    gap: 15px;
-    margin-bottom: 30px;
-}
+// --- Event Listeners ---
 
-.stat-box {
-    background: rgba(25, 30, 36, 0.5);
-    padding: 15px;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--primary-color);
-    flex: 1;
-    backdrop-filter: blur(5px);
-}
+// Main click button logic
+clickButton.addEventListener('click', () => {
+    let currentClickValue = clickValue * prestigeMultiplier;
+    
+    const isCrit = Math.random() < critChance;
+    if (isCrit) {
+        currentClickValue *= 10;
+        score += currentClickValue;
+        // In a real game, you would display a floating text here
+    } else {
+        score += currentClickValue;
+    }
+    
+    checkAchievements();
+    updateDisplay();
+});
 
-.stat-box p {
-    margin: 0 0 5px 0;
-    font-size: 0.9em;
-    color: var(--secondary-color);
-}
+// Tab functionality
+document.querySelectorAll('.tab-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-.stat-box span {
-    font-size: 1.8em;
-    font-weight: bold;
-    color: var(--primary-color);
-}
+        button.classList.add('active');
+        document.getElementById(button.dataset.tab).classList.add('active');
+    });
+});
 
-#clickButton {
-    width: 220px;
-    height: 220px;
-    font-size: 1.8em;
-    font-weight: bold;
-    cursor: pointer;
-    border: none;
-    border-radius: 50%;
-    background: radial-gradient(circle, #66fcf1, #45a29e);
-    color: var(--btn-hover);
-    box-shadow: 0 0 20px #66fcf1;
-    transition: transform 0.1s ease, box-shadow 0.3s ease;
-    margin-bottom: 30px;
-    text-shadow: 0 0 5px rgba(0,0,0,0.5);
-    animation: glow-pulse 3s infinite;
-}
+// Upgrade purchasing logic
+upgradesList.addEventListener('click', (event) => {
+    if (event.target.classList.contains('buy-btn')) {
+        const itemId = event.target.dataset.id;
+        const item = upgrades.find(up => up.id === itemId);
 
-@keyframes glow-pulse {
-    0% { box-shadow: 0 0 10px #66fcf1; }
-    50% { box-shadow: 0 0 30px #66fcf1, 0 0 40px #45a29e; }
-    100% { box-shadow: 0 0 10px #66fcf1; }
-}
+        if (score >= item.cost) {
+            score -= item.cost;
+            if (itemId === 'auto-clicker') {
+                autoClickers++;
+                cps++;
+            } else if (itemId === 'double-clicks') {
+                clickValue *= 2;
+                doubleClicks++;
+            } else if (itemId === 'crit-booster') {
+                critChance += 0.02;
+            }
+            item.cost = Math.floor(item.cost * 1.5);
+            generateItems();
+            checkAchievements();
+            updateDisplay();
+        } else {
+            alert('Not enough score!');
+        }
+    }
+});
 
-#clickButton:active {
-    transform: scale(0.95);
-    box-shadow: 0 0 5px #66fcf1;
-}
+// Store item purchasing logic
+storeList.addEventListener('click', (event) => {
+    if (event.target.classList.contains('buy-powerup-btn')) {
+        const itemId = event.target.dataset.id;
+        const item = storeItems.find(st => st.id === itemId);
 
-.btn {
-    padding: 12px 20px;
-    font-size: 1em;
-    font-weight: 700;
-    cursor: pointer;
-    border: 2px solid var(--primary-color);
-    border-radius: 5px;
-    background-color: var(--btn-bg);
-    color: var(--text-color);
-    transition: background-color 0.3s ease, color 0.3s ease, transform 0.1s ease;
-    text-transform: uppercase;
-}
+        if (score >= item.cost) {
+            score -= item.cost;
+            if (itemId === 'score-boost') {
+                score *= 1.5;
+            } else if (itemId === 'cps-boost') {
+                cps *= 2;
+            }
+            storeItems.splice(storeItems.indexOf(item), 1);
+            generateItems();
+            updateDisplay();
+        } else {
+            alert('Not enough score!');
+        }
+    }
+});
 
-.btn:hover {
-    background-color: var(--primary-color);
-    color: var(--btn-hover);
-}
+// Prestige logic
+prestigeButton.addEventListener('click', () => {
+    if (score >= 1000) {
+        score = 0;
+        clickValue = 1;
+        cps = 0;
+        autoClickers = 0;
+        doubleClicks = 0;
+        prestigeLevel++;
+        prestigeMultiplier += 0.1;
+        
+        upgrades.forEach(up => {
+            up.cost = up.initialCost;
+        });
 
-.btn:active {
-    transform: scale(0.98);
-}
+        checkAchievements();
+        generateItems();
+        updateDisplay();
+        alert(`You have prestiged to level ${prestigeLevel}!`);
+    } else {
+        alert('You need at least 1000 score to prestige!');
+    }
+});
 
-.btn-special {
-    background-image: linear-gradient(45deg, #45a29e, #66fcf1);
-    border: none;
-    box-shadow: 0 0 10px #45a29e;
-    color: var(--btn-hover);
-}
+// Daily reward logic
+dailyRewardButton.addEventListener('click', () => {
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    if (now - lastDailyRewardTime > oneDay) {
+        const reward = 50 + prestigeLevel * 10;
+        score += reward;
+        lastDailyRewardTime = now;
+        alert(`You claimed your daily reward of ${reward} score!`);
+        updateDisplay();
+    } else {
+        const timeRemaining = oneDay - (now - lastDailyRewardTime);
+        const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+        alert(`Next daily reward available in ${hours}h ${minutes}m.`);
+    }
+});
 
-.btn-special:hover {
-    background-image: linear-gradient(45deg, #66fcf1, #45a29e);
-    box-shadow: 0 0 20px #66fcf1;
-}
+// Theme toggle logic
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('theme-light');
+});
 
-.button-row {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 30px;
-}
+// --- Game Loop ---
+setInterval(() => {
+    score += cps * prestigeMultiplier;
+    checkAchievements();
+    updateDisplay();
+}, 1000);
 
-.tabs-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-    border-bottom: 2px solid var(--primary-color);
-}
-
-.tab-btn {
-    padding: 15px 25px;
-    background: none;
-    border: none;
-    color: var(--secondary-color);
-    font-size: 1.1em;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: border-bottom 0.3s ease, color 0.3s ease;
-}
-
-.tab-btn:hover {
-    color: var(--text-color);
-}
-
-.tab-btn.active {
-    border-bottom-color: var(--text-color);
-    color: var(--text-color);
-}
-
-.tab-content {
-    display: none;
-    animation: fadeIn 0.8s ease-in-out;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-h2 {
-    color: var(--primary-color);
-    text-shadow: 0 0 5px rgba(70, 200, 255, 0.2);
-}
-
-.upgrade-item, .store-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--upgrade-bg);
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    border: 1px solid var(--primary-color);
-    transition: transform 0.2s ease;
-}
-
-.upgrade-item:hover, .store-item:hover {
-    transform: translateY(-5px);
-}
-
-.item-info h3 {
-    margin: 0;
-    font-size: 1.2em;
-    color: var(--text-color);
-}
-
-.item-info p {
-    margin: 5px 0 0 0;
-    font-size: 0.9em;
-    color: var(--secondary-color);
-}
-
-.item-cost {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #c5c6c7;
-    background: linear-gradient(45deg, #45a29e, #66fcf1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.buy-btn, .buy-powerup-btn {
-    padding: 10px 15px;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.buy-btn:hover, .buy-powerup-btn:hover {
-    background-color: #2980b9;
-}
-
-#achievements-list {
-    list-style-type: none;
-    padding: 0;
-    text-align: left;
-}
-
-#achievements-list li {
-    background: var(--upgrade-bg);
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid var(--primary-color);
-}
-
-.achieved {
-    color: var(--text-color);
-    font-weight: bold;
-}
-
-.not-achieved {
-    color: #555;
-}
-
-.theme-light {
-    --bg-color: #e0e0e0;
-    --container-bg: #ffffff;
-    --text-color: #333333;
-    --primary-color: #e74c3c;
-    --secondary-color: #2c3e50;
-    --btn-bg: #ecf0f1;
-    --btn-hover: #bdc3c7;
-    --upgrade-bg: #f8f9fa;
-    --upgrade-hover: #e9ecef;
-    --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    --border-color: #e74c3c;
-}
-.theme-light .game-container {
-    animation: none;
-    border-color: var(--border-color);
-}
-.theme-light #clickButton {
-    background: radial-gradient(circle, #e74c3c, #c0392b);
-    box-shadow: 0 0 20px #e74c3c;
-    animation: none;
-}
-.theme-light .btn-special {
-    background-image: linear-gradient(45deg, #e74c3c, #c0392b);
-    box-shadow: 0 0 10px #e74c3c;
-}
-.theme-light .btn-special:hover {
-    background-image: linear-gradient(45deg, #c0392b, #e74c3c);
-    box-shadow: 0 0 20px #c0392b;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+// Initial setup
+generateItems();
+renderAchievements();
+updateDisplay();
