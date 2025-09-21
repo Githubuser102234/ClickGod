@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Clicker Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>Advanced Clicker Game</h1>
+        <div class="stats">
+            <p>Score: <span id="score">0</span></p>
+            <p>Clicks Per Second: <span id="cps">0</span></p>
+        </div>
+
+        <button id="clickButton">Click Me!</button>
+
+        <div class="upgrades-container">
+            <h2>Upgrades</h2>
+            <div class="upgrade-item" id="upgrade1">
+                <p>Auto-Clicker</p>
+                <p>Cost: <span id="upgrade1-cost">10</span></p>
+                <button class="buy-upgrade" data-upgrade-id="1">Buy</button>
+            </div>
+            <div class="upgrade-item" id="upgrade2">
+                <p>Double Clicks</p>
+                <p>Cost: <span id="upgrade2-cost">50</span></p>
+                <button class="buy-upgrade" data-upgrade-id="2">Buy</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
