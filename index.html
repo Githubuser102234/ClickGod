@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Clicker Game Pro</title>
+    <title>Quantum Clicker</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="game-container">
         <header>
-            <h1>Advanced Clicker Pro</h1>
+            <h1>Quantum Clicker</h1>
             <button id="theme-toggle" class="btn">Toggle Dark/Light Mode</button>
         </header>
 
@@ -19,7 +20,7 @@
                 <span id="score">0</span>
             </div>
             <div class="stat-box">
-                <p>Clicks Per Second</p>
+                <p>CPS</p>
                 <span id="cps">0</span>
             </div>
             <div class="stat-box">
@@ -28,11 +29,11 @@
             </div>
         </div>
 
-        <button id="clickButton">Click Me!</button>
+        <button id="clickButton">Quantum Pulse</button>
 
         <div class="button-row">
-            <button id="prestige-button" class="btn btn-special">Prestige!</button>
-            <button id="daily-reward-button" class="btn">Claim Daily Reward</button>
+            <button id="prestige-button" class="btn btn-special">Initiate Prestige</button>
+            <button id="daily-reward-button" class="btn">Claim Data Stream</button>
         </div>
 
         <div class="tabs-container">
@@ -42,20 +43,21 @@
         </div>
 
         <div id="upgrades" class="tab-content active">
-            <h2>Upgrades</h2>
+            <h2>System Upgrades</h2>
             <div id="upgrades-list"></div>
         </div>
 
         <div id="store" class="tab-content">
-            <h2>Store</h2>
+            <h2>Data Stream Store</h2>
             <div id="store-list"></div>
         </div>
 
         <div id="achievements" class="tab-content">
-            <h2>Achievements</h2>
+            <h2>Milestones</h2>
             <ul id="achievements-list"></ul>
         </div>
     </div>
+    <div id="particles-container"></div>
     <script src="script.js"></script>
 </body>
 </html>
