@@ -8,6 +8,7 @@ let autoClickers = 0;
 let doubleClicks = 0;
 let critChance = 0.05;
 let lastDailyRewardTime = 0;
+let username = '';
 
 // DOM element references
 const scoreElement = document.getElementById('score');
@@ -20,12 +21,13 @@ const upgradesList = document.getElementById('upgrades-list');
 const storeList = document.getElementById('store-list');
 const achievementsList = document.getElementById('achievements-list');
 const themeToggle = document.getElementById('theme-toggle');
+const leaderboardList = document.getElementById('leaderboard-list');
 
 // Game data
 const upgrades = [
-    { id: 'auto-clicker', name: 'Auto-Clicker', cost: 10, initialCost: 10, effect: 'Adds 1 CPS' },
-    { id: 'double-clicks', name: 'Double Clicks', cost: 50, initialCost: 50, effect: 'Doubles click value' },
-    { id: 'crit-booster', name: 'Critical Click Booster', cost: 200, initialCost: 200, effect: 'Increases crit chance by 2%' }
+    { id: 'auto-clicker', name: 'Auto-Clicker', cost: 10, initialCost: 10, effect: 'Adds 1 CPS', count: 0 },
+    { id: 'double-clicks', name: 'Double Clicks', cost: 50, initialCost: 50, effect: 'Doubles click value', count: 0 },
+    { id: 'crit-booster', name: 'Critical Click Booster', cost: 200, initialCost: 200, effect: 'Increases crit chance by 2%', count: 0 }
 ];
 
 const storeItems = [
@@ -42,6 +44,51 @@ const achievements = [
 
 // --- Core Game Functions ---
 
+// Save game state to local storage
+function saveGame() {
+    const gameState = {
+        score,
+        clickValue,
+        cps,
+        prestigeLevel,
+        prestigeMultiplier,
+        upgrades,
+        lastDailyRewardTime,
+        username
+    };
+    localStorage.setItem('quantumClickerSave', JSON.stringify(gameState));
+}
+
+// Load game state from local storage
+function loadGame() {
+    const savedState = localStorage.getItem('quantumClickerSave');
+    if (savedState) {
+        const gameState = JSON.parse(savedState);
+        score = gameState.score;
+        clickValue = gameState.clickValue;
+        cps = gameState.cps;
+        prestigeLevel = gameState.prestigeLevel;
+        prestigeMultiplier = gameState.prestigeMultiplier;
+        gameState.upgrades.forEach(savedUpgrade => {
+            const currentUpgrade = upgrades.find(up => up.id === savedUpgrade.id);
+            if (currentUpgrade) {
+                currentUpgrade.cost = savedUpgrade.cost;
+                currentUpgrade.count = savedUpgrade.count;
+            }
+        });
+        lastDailyRewardTime = gameState.lastDailyRewardTime;
+        username = gameState.username || prompt('Welcome, Player! Please enter your username:');
+        if (username) {
+            saveGame();
+        }
+    } else {
+        username = prompt('Welcome, Player! Please enter your username:');
+        if (username) {
+            saveGame();
+        }
+    }
+}
+
 // Update the display with current stats
 function updateDisplay() {
     scoreElement.textContent = Math.floor(score);
@@ -57,7 +104,7 @@ function generateItems() {
         div.className = 'upgrade-item';
         div.innerHTML = `
             <div class="item-info">
-                <h3>${item.name}</h3>
+                <h3>${item.name} (x${item.count})</h3>
                 <p>${item.effect}</p>
             </div>
             <div class="item-cost">${item.cost}</div>
@@ -90,7 +137,7 @@ function checkAchievements() {
                 achievement.achieved = true;
             } else if (achievement.id === 'hundred-score' && score >= 100) {
                 achievement.achieved = true;
-            } else if (achievement.id === 'first-upgrade' && (autoClickers > 0 || doubleClicks > 0)) {
+            } else if (achievement.id === 'first-upgrade' && upgrades.some(up => up.count > 0)) {
                 achievement.achieved = true;
             } else if (achievement.id === 'prestige-one' && prestigeLevel >= 1) {
                 achievement.achieved = true;
@@ -114,37 +161,71 @@ function renderAchievements() {
     });
 }
 
+// Fetch and display leaderboard from a local JSON file
+async function getLeaderboard() {
+    try {
+        const response = await fetch('leaderboard.json');
+        const data = await response.json();
+        renderLeaderboard(data);
+    } catch (error) {
+        console.error('Failed to fetch leaderboard:', error);
+    }
+}
+
+// Update the leaderboard data and render it
+function updateLeaderboard() {
+    getLeaderboard().then(data => {
+        const existingUserIndex = data.findIndex(user => user.username === username);
+        if (existingUserIndex !== -1) {
+            if (score > data[existingUserIndex].score) {
+                data[existingUserIndex].score = score;
+                data[existingUserIndex].prestigeLevel = prestigeLevel;
+            }
+        } else {
+            data.push({ username, score, prestigeLevel });
+        }
+        // This part would ideally save to the file, but client-side JS cannot do that
+        // For a client-only solution, the leaderboard is updated in memory
+        renderLeaderboard(data);
+    });
+}
+
+// Render leaderboard to the UI
+function renderLeaderboard(data) {
+    leaderboardList.innerHTML = '';
+    data.sort((a, b) => b.score - a.score).slice(0, 10).forEach((entry, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>#${index + 1} ${entry.username}</span><span>Score: ${Math.floor(entry.score)} (P: ${entry.prestigeLevel})</span>`;
+        leaderboardList.appendChild(li);
+    });
+}
+
 // --- Event Listeners ---
 
-// Main click button logic
 clickButton.addEventListener('click', () => {
     let currentClickValue = clickValue * prestigeMultiplier;
-    
     const isCrit = Math.random() < critChance;
     if (isCrit) {
         currentClickValue *= 10;
-        score += currentClickValue;
-        // In a real game, you would display a floating text here
-    } else {
-        score += currentClickValue;
     }
-    
+    score += currentClickValue;
     checkAchievements();
     updateDisplay();
+    saveGame();
 });
 
-// Tab functionality
 document.querySelectorAll('.tab-btn').forEach(button => {
     button.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
         button.classList.add('active');
         document.getElementById(button.dataset.tab).classList.add('active');
+        if (button.dataset.tab === 'leaderboard') {
+            getLeaderboard();
+        }
     });
 });
 
-// Upgrade purchasing logic
 upgradesList.addEventListener('click', (event) => {
     if (event.target.classList.contains('buy-btn')) {
         const itemId = event.target.dataset.id;
@@ -152,12 +233,11 @@ upgradesList.addEventListener('click', (event) => {
 
         if (score >= item.cost) {
             score -= item.cost;
+            item.count++;
             if (itemId === 'auto-clicker') {
-                autoClickers++;
                 cps++;
             } else if (itemId === 'double-clicks') {
                 clickValue *= 2;
-                doubleClicks++;
             } else if (itemId === 'crit-booster') {
                 critChance += 0.02;
             }
@@ -165,13 +245,13 @@ upgradesList.addEventListener('click', (event) => {
             generateItems();
             checkAchievements();
             updateDisplay();
+            saveGame();
         } else {
             alert('Not enough score!');
         }
     }
 });
 
-// Store item purchasing logic
 storeList.addEventListener('click', (event) => {
     if (event.target.classList.contains('buy-powerup-btn')) {
         const itemId = event.target.dataset.id;
@@ -187,37 +267,36 @@ storeList.addEventListener('click', (event) => {
             storeItems.splice(storeItems.indexOf(item), 1);
             generateItems();
             updateDisplay();
+            saveGame();
         } else {
             alert('Not enough score!');
         }
     }
 });
 
-// Prestige logic
 prestigeButton.addEventListener('click', () => {
     if (score >= 1000) {
         score = 0;
         clickValue = 1;
         cps = 0;
-        autoClickers = 0;
-        doubleClicks = 0;
         prestigeLevel++;
         prestigeMultiplier += 0.1;
-        
         upgrades.forEach(up => {
             up.cost = up.initialCost;
+            up.count = 0;
         });
 
         checkAchievements();
         generateItems();
         updateDisplay();
+        saveGame();
+        updateLeaderboard();
         alert(`You have prestiged to level ${prestigeLevel}!`);
     } else {
         alert('You need at least 1000 score to prestige!');
     }
 });
 
-// Daily reward logic
 dailyRewardButton.addEventListener('click', () => {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -227,6 +306,7 @@ dailyRewardButton.addEventListener('click', () => {
         lastDailyRewardTime = now;
         alert(`You claimed your daily reward of ${reward} score!`);
         updateDisplay();
+        saveGame();
     } else {
         const timeRemaining = oneDay - (now - lastDailyRewardTime);
         const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
@@ -235,19 +315,21 @@ dailyRewardButton.addEventListener('click', () => {
     }
 });
 
-// Theme toggle logic
 themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('theme-light');
+    saveGame();
 });
 
-// --- Game Loop ---
+// Game loop and initial setup
 setInterval(() => {
     score += cps * prestigeMultiplier;
     checkAchievements();
     updateDisplay();
+    saveGame();
 }, 1000);
 
-// Initial setup
+loadGame();
 generateItems();
 renderAchievements();
 updateDisplay();
+getLeaderboard();
