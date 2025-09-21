@@ -3,31 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Clicker Game</title>
+    <title>Advanced Clicker Game Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
-        <h1>Advanced Clicker Game</h1>
-        <div class="stats">
-            <p>Score: <span id="score">0</span></p>
-            <p>Clicks Per Second: <span id="cps">0</span></p>
+        <header>
+            <h1>Advanced Clicker Pro</h1>
+            <button id="theme-toggle" class="btn">Toggle Dark/Light Mode</button>
+        </header>
+
+        <div class="stats-container">
+            <div class="stat-box">
+                <p>Score</p>
+                <span id="score">0</span>
+            </div>
+            <div class="stat-box">
+                <p>Clicks Per Second</p>
+                <span id="cps">0</span>
+            </div>
+            <div class="stat-box">
+                <p>Prestige Level</p>
+                <span id="prestige-level">0</span>
+            </div>
         </div>
 
         <button id="clickButton">Click Me!</button>
 
-        <div class="upgrades-container">
+        <div class="button-row">
+            <button id="prestige-button" class="btn btn-special">Prestige!</button>
+            <button id="daily-reward-button" class="btn">Claim Daily Reward</button>
+        </div>
+
+        <div class="tabs-container">
+            <button class="tab-btn active" data-tab="upgrades">Upgrades</button>
+            <button class="tab-btn" data-tab="store">Store</button>
+            <button class="tab-btn" data-tab="achievements">Achievements</button>
+        </div>
+
+        <div id="upgrades" class="tab-content active">
             <h2>Upgrades</h2>
-            <div class="upgrade-item" id="upgrade1">
-                <p>Auto-Clicker</p>
-                <p>Cost: <span id="upgrade1-cost">10</span></p>
-                <button class="buy-upgrade" data-upgrade-id="1">Buy</button>
-            </div>
-            <div class="upgrade-item" id="upgrade2">
-                <p>Double Clicks</p>
-                <p>Cost: <span id="upgrade2-cost">50</span></p>
-                <button class="buy-upgrade" data-upgrade-id="2">Buy</button>
-            </div>
+            <div id="upgrades-list"></div>
+        </div>
+
+        <div id="store" class="tab-content">
+            <h2>Store</h2>
+            <div id="store-list"></div>
+        </div>
+
+        <div id="achievements" class="tab-content">
+            <h2>Achievements</h2>
+            <ul id="achievements-list"></ul>
         </div>
     </div>
     <script src="script.js"></script>
