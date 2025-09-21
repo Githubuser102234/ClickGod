@@ -1,0 +1,17 @@
+[
+    {
+        "username": "QuantumMaster",
+        "score": 50000,
+        "prestigeLevel": 5
+    },
+    {
+        "username": "DataSmasher",
+        "score": 35000,
+        "prestigeLevel": 3
+    },
+    {
+        "username": "CodeBreaker",
+        "score": 20000,
+        "prestigeLevel": 2
+    }
+]
