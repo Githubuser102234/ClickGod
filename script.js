@@ -6,7 +6,7 @@ let prestigeLevel = 0;
 let prestigeMultiplier = 1;
 let autoClickers = 0;
 let doubleClicks = 0;
-let critChance = 0.05; // 5% base chance
+let critChance = 0.05;
 let lastDailyRewardTime = 0;
 
 // DOM element references
@@ -120,12 +120,11 @@ function renderAchievements() {
 clickButton.addEventListener('click', () => {
     let currentClickValue = clickValue * prestigeMultiplier;
     
-    // Critical click logic
     const isCrit = Math.random() < critChance;
     if (isCrit) {
-        currentClickValue *= 10; // 10x critical bonus
+        currentClickValue *= 10;
         score += currentClickValue;
-        alert('Critical Click! + ' + Math.floor(currentClickValue));
+        // In a real game, you would display a floating text here
     } else {
         score += currentClickValue;
     }
@@ -163,7 +162,7 @@ upgradesList.addEventListener('click', (event) => {
                 critChance += 0.02;
             }
             item.cost = Math.floor(item.cost * 1.5);
-            generateItems(); // Re-render to show new costs
+            generateItems();
             checkAchievements();
             updateDisplay();
         } else {
@@ -185,9 +184,8 @@ storeList.addEventListener('click', (event) => {
             } else if (itemId === 'cps-boost') {
                 cps *= 2;
             }
-            // Remove the item from the store after purchase
             storeItems.splice(storeItems.indexOf(item), 1);
-            generateItems(); // Re-render to show purchased item is gone
+            generateItems();
             updateDisplay();
         } else {
             alert('Not enough score!');
@@ -204,9 +202,8 @@ prestigeButton.addEventListener('click', () => {
         autoClickers = 0;
         doubleClicks = 0;
         prestigeLevel++;
-        prestigeMultiplier += 0.1; // Increases CPS/click value
+        prestigeMultiplier += 0.1;
         
-        // Reset upgrades to initial state
         upgrades.forEach(up => {
             up.cost = up.initialCost;
         });
